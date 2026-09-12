@@ -177,7 +177,7 @@ body {
 
 .day.controller-selected {
     background: rgba(255,255,255,0.25);
-    border-color: rgba(255,255,255,0.8);
+    border-color: rgba(255,255,255,0.85);
     box-shadow:
         0 0 0 2px rgba(255,255,255,0.15),
         0 0 25px rgba(255,255,255,0.16);
@@ -309,13 +309,21 @@ body {
 </div>
 
 <div class="video-overlay" id="videoOverlay">
+
     <div class="video-modal" id="videoModal">
 
-        <button class="close-button" id="closeButton">×</button>
+        <button
+            class="close-button"
+            id="closeButton"
+        >×</button>
 
-        <div class="video-container" id="videoContainer"></div>
+        <div
+            class="video-container"
+            id="videoContainer"
+        ></div>
 
     </div>
+
 </div>
 
 <audio id="moveSound" preload="auto">
@@ -371,7 +379,9 @@ const linkSound =
     document.getElementById("linkSound");
 
 let episodes = [];
-let episodeByDate = new Map();
+
+let episodeByDate =
+    new Map();
 
 let currentMonth =
     new Date(
@@ -380,30 +390,49 @@ let currentMonth =
         1
     );
 
-let selectedEpisode = null;
-let controllerEpisodeIndex = 0;
-let hasPlayedHoverSound = false;
+let selectedEpisode =
+    null;
+
+let hasPlayedHoverSound =
+    false;
 
 function getTodayDate() {
-    const now = new Date();
+    const now =
+        new Date();
 
     return [
         now.getFullYear(),
-        String(now.getMonth() + 1).padStart(2, "0"),
-        String(now.getDate()).padStart(2, "0")
+        String(
+            now.getMonth() + 1
+        ).padStart(2, "0"),
+        String(
+            now.getDate()
+        ).padStart(2, "0")
     ].join("-");
 }
 
-function parseEpisodeDate(dateString) {
+function formatDate(date) {
+    return [
+        date.getFullYear(),
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0"),
+        String(
+            date.getDate()
+        ).padStart(2, "0")
+    ].join("-");
+}
+
+function parseEpisodeDate(value) {
     if (
-        typeof dateString !== "string" ||
-        !/^\d{4}-\d{2}-\d{2}$/.test(dateString)
+        typeof value !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(value)
     ) {
         return null;
     }
 
     const parts =
-        dateString.split("-").map(Number);
+        value.split("-").map(Number);
 
     const date =
         new Date(
@@ -421,14 +450,6 @@ function parseEpisodeDate(dateString) {
     }
 
     return date;
-}
-
-function formatDate(date) {
-    return [
-        date.getFullYear(),
-        String(date.getMonth() + 1).padStart(2, "0"),
-        String(date.getDate()).padStart(2, "0")
-    ].join("-");
 }
 
 function extractVideoId(value) {
@@ -450,7 +471,8 @@ function extractVideoId(value) {
             new URL(text);
 
         if (
-            url.hostname === "youtu.be"
+            url.hostname ===
+            "youtu.be"
         ) {
             return (
                 url.pathname
@@ -461,14 +483,18 @@ function extractVideoId(value) {
         }
 
         if (
-            url.hostname.includes("youtube.com") ||
-            url.hostname.includes("youtube-nocookie.com")
+            url.hostname.includes(
+                "youtube.com"
+            ) ||
+            url.hostname.includes(
+                "youtube-nocookie.com"
+            )
         ) {
-            const queryId =
+            const id =
                 url.searchParams.get("v");
 
-            if (queryId) {
-                return queryId;
+            if (id) {
+                return id;
             }
 
             const parts =
@@ -507,7 +533,8 @@ async function loadEpisodes() {
 
         if (!response.ok) {
             throw new Error(
-                "HTTP " + response.status
+                "HTTP " +
+                response.status
             );
         }
 
@@ -516,7 +543,7 @@ async function loadEpisodes() {
 
         if (!Array.isArray(data)) {
             throw new Error(
-                "episodes.json is not an array"
+                "Invalid episodes.json"
             );
         }
 
@@ -565,7 +592,8 @@ async function loadEpisodes() {
                 .filter(Boolean)
                 .sort(
                     (a, b) =>
-                        a.number - b.number
+                        a.number -
+                        b.number
                 );
 
         episodeByDate =
@@ -582,39 +610,39 @@ async function loadEpisodes() {
             getTodayDate();
 
         const todayEpisode =
-            episodeByDate.get(today);
+            episodeByDate.get(
+                today
+            );
 
         if (todayEpisode) {
             selectedEpisode =
                 todayEpisode;
-
-            controllerEpisodeIndex =
-                episodes.findIndex(
-                    episode =>
-                        episode.number ===
-                        todayEpisode.number
-                );
         }
 
         const now =
             new Date();
 
-        const detectedMonth =
+        currentMonth =
             new Date(
                 now.getFullYear(),
                 now.getMonth(),
                 1
             );
 
-        currentMonth =
-            detectedMonth <
-            FIRST_ALLOWED_MONTH
-                ? new Date(
-                    FIRST_ALLOWED_MONTH.getFullYear(),
-                    FIRST_ALLOWED_MONTH.getMonth(),
+        if (
+            isBeforeAllowedMonth(
+                currentMonth
+            )
+        ) {
+            currentMonth =
+                new Date(
+                    FIRST_ALLOWED_MONTH
+                        .getFullYear(),
+                    FIRST_ALLOWED_MONTH
+                        .getMonth(),
                     1
-                )
-                : detectedMonth;
+                );
+        }
 
         renderCalendar();
 
@@ -659,8 +687,10 @@ function renderCalendar() {
     ) {
         currentMonth =
             new Date(
-                FIRST_ALLOWED_MONTH.getFullYear(),
-                FIRST_ALLOWED_MONTH.getMonth(),
+                FIRST_ALLOWED_MONTH
+                    .getFullYear(),
+                FIRST_ALLOWED_MONTH
+                    .getMonth(),
                 1
             );
     }
@@ -683,7 +713,8 @@ function renderCalendar() {
     prevButton.disabled =
         isFirstAllowedMonth();
 
-    calendarDays.innerHTML = "";
+    calendarDays.innerHTML =
+        "";
 
     const firstDay =
         new Date(
@@ -705,7 +736,9 @@ function renderCalendar() {
         i++
     ) {
         const empty =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
         empty.className =
             "day empty";
@@ -736,7 +769,9 @@ function renderCalendar() {
             );
 
         const day =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
         day.className =
             "day";
@@ -766,7 +801,9 @@ function renderCalendar() {
             }
 
             day.innerHTML = `
-                <span class="day-number">${dayNumber}</span>
+                <span class="day-number">
+                    ${dayNumber}
+                </span>
                 <span class="episode-dot"></span>
             `;
 
@@ -796,7 +833,9 @@ function renderCalendar() {
             );
         } else {
             day.innerHTML = `
-                <span class="day-number">${dayNumber}</span>
+                <span class="day-number">
+                    ${dayNumber}
+                </span>
             `;
 
             if (
@@ -823,7 +862,9 @@ function renderCalendar() {
         i++
     ) {
         const empty =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
         empty.className =
             "day empty";
@@ -861,32 +902,19 @@ function updateControllerHighlight() {
             ".controller-selected"
         )
         .forEach(
-            element =>
+            element => {
                 element.classList.remove(
                     "controller-selected"
-                )
+                );
+            }
         );
 
     if (!selectedEpisode) {
         return;
     }
 
-    const visible =
-        getVisibleEpisodes();
-
-    const index =
-        visible.findIndex(
-            episode =>
-                episode.number ===
-                selectedEpisode.number
-        );
-
-    if (index < 0) {
-        return;
-    }
-
     const targetDate =
-        visible[index].date;
+        selectedEpisode.date;
 
     document
         .querySelectorAll(
@@ -904,8 +932,10 @@ function updateControllerHighlight() {
 
             const date =
                 new Date(
-                    currentMonth.getFullYear(),
-                    currentMonth.getMonth(),
+                    currentMonth
+                        .getFullYear(),
+                    currentMonth
+                        .getMonth(),
                     number
                 );
 
@@ -995,8 +1025,6 @@ function selectEpisode(episode) {
 
     document.body.style.overflow =
         "hidden";
-
-    renderCalendar();
 }
 
 function closeVideo() {
@@ -1027,8 +1055,10 @@ function changeMonth(amount) {
     ) {
         currentMonth =
             new Date(
-                FIRST_ALLOWED_MONTH.getFullYear(),
-                FIRST_ALLOWED_MONTH.getMonth(),
+                FIRST_ALLOWED_MONTH
+                    .getFullYear(),
+                FIRST_ALLOWED_MONTH
+                    .getMonth(),
                 1
             );
 
@@ -1176,13 +1206,232 @@ document.addEventListener(
     }
 );
 
-let previousGamepadButtons = [];
+const controllerState =
+    new Map();
+
+const AXIS_DEADZONE =
+    0.45;
+
+const AXIS_RELEASE =
+    0.20;
+
+const INPUT_REPEAT_DELAY =
+    180;
+
+function getControllerState(index) {
+    if (
+        !controllerState.has(index)
+    ) {
+        controllerState.set(
+            index,
+            {
+                left: false,
+                right: false,
+                up: false,
+                down: false,
+                a: false,
+                b: false,
+                lb: false,
+                rb: false,
+                lastMove: 0
+            }
+        );
+    }
+
+    return controllerState.get(
+        index
+    );
+}
+
+function isButtonPressed(
+    gamepad,
+    index
+) {
+    return Boolean(
+        gamepad.buttons[index] &&
+        gamepad.buttons[index].pressed
+    );
+}
+
+function axisActive(
+    value,
+    positive
+) {
+    if (
+        typeof value !==
+        "number"
+    ) {
+        return false;
+    }
+
+    if (positive) {
+        return value >= AXIS_DEADZONE;
+    }
+
+    return value <= -AXIS_DEADZONE;
+}
+
+function axisReleased(
+    value
+) {
+    return (
+        typeof value !== "number" ||
+        Math.abs(value) <=
+            AXIS_RELEASE
+    );
+}
+
+function getDirection(
+    gamepad,
+    state
+) {
+    let left =
+        isButtonPressed(
+            gamepad,
+            14
+        );
+
+    let right =
+        isButtonPressed(
+            gamepad,
+            15
+        );
+
+    let up =
+        isButtonPressed(
+            gamepad,
+            12
+        );
+
+    let down =
+        isButtonPressed(
+            gamepad,
+            13
+        );
+
+    const axes =
+        gamepad.axes || [];
+
+    const stickX =
+        Number(axes[0] || 0);
+
+    const stickY =
+        Number(axes[1] || 0);
+
+    const dpadX =
+        Number(
+            axes[6] ||
+            0
+        );
+
+    const dpadY =
+        Number(
+            axes[7] ||
+            0
+        );
+
+    if (
+        axisActive(
+            stickX,
+            false
+        ) ||
+        axisActive(
+            dpadX,
+            false
+        )
+    ) {
+        left = true;
+    }
+
+    if (
+        axisActive(
+            stickX,
+            true
+        ) ||
+        axisActive(
+            dpadX,
+            true
+        )
+    ) {
+        right = true;
+    }
+
+    if (
+        axisActive(
+            stickY,
+            false
+        ) ||
+        axisActive(
+            dpadY,
+            false
+        )
+    ) {
+        up = true;
+    }
+
+    if (
+        axisActive(
+            stickY,
+            true
+        ) ||
+        axisActive(
+            dpadY,
+            true
+        )
+    ) {
+        down = true;
+    }
+
+    const now =
+        performance.now();
+
+    if (
+        now - state.lastMove <
+        INPUT_REPEAT_DELAY
+    ) {
+        left =
+            left &&
+            !state.left;
+
+        right =
+            right &&
+            !state.right;
+
+        up =
+            up &&
+            !state.up;
+
+        down =
+            down &&
+            !state.down;
+    }
+
+    if (
+        left ||
+        right ||
+        up ||
+        down
+    ) {
+        state.lastMove =
+            now;
+    }
+
+    return {
+        left,
+        right,
+        up,
+        down
+    };
+}
 
 function pollControllers() {
-    if (!navigator.getGamepads) {
+    if (
+        !navigator.getGamepads
+    ) {
         requestAnimationFrame(
             pollControllers
         );
+
         return;
     }
 
@@ -1196,46 +1445,67 @@ function pollControllers() {
             continue;
         }
 
+        const state =
+            getControllerState(
+                gamepad.index
+            );
+
+        const direction =
+            getDirection(
+                gamepad,
+                state
+            );
+
+        const a =
+            isButtonPressed(
+                gamepad,
+                0
+            );
+
+        const b =
+            isButtonPressed(
+                gamepad,
+                1
+            );
+
+        const lb =
+            isButtonPressed(
+                gamepad,
+                4
+            );
+
+        const rb =
+            isButtonPressed(
+                gamepad,
+                5
+            );
+
+        const aPressed =
+            a && !state.a;
+
+        const bPressed =
+            b && !state.b;
+
+        const lbPressed =
+            lb && !state.lb;
+
+        const rbPressed =
+            rb && !state.rb;
+
         if (
-            !previousGamepadButtons[
-                gamepad.index
-            ]
-        ) {
-            previousGamepadButtons[
-                gamepad.index
-            ] = [];
-        }
-
-        const previous =
-            previousGamepadButtons[
-                gamepad.index
-            ];
-
-        const buttons =
-            gamepad.buttons;
-
-        const pressed =
-            index =>
-                buttons[index] &&
-                buttons[index].pressed &&
-                !previous[index];
-
-        if (
-            pressed(14) ||
-            pressed(4)
+            direction.left
         ) {
             changeMonth(-1);
         }
 
         if (
-            pressed(15) ||
-            pressed(5)
+            direction.right
         ) {
             changeMonth(1);
         }
 
         if (
-            pressed(12)
+            direction.up
         ) {
             moveControllerSelection(
                 -1
@@ -1243,7 +1513,7 @@ function pollControllers() {
         }
 
         if (
-            pressed(13)
+            direction.down
         ) {
             moveControllerSelection(
                 1
@@ -1251,7 +1521,19 @@ function pollControllers() {
         }
 
         if (
-            pressed(0) &&
+            lbPressed
+        ) {
+            changeMonth(-1);
+        }
+
+        if (
+            rbPressed
+        ) {
+            changeMonth(1);
+        }
+
+        if (
+            aPressed &&
             selectedEpisode &&
             !videoOverlay.classList.contains(
                 "open"
@@ -1263,7 +1545,7 @@ function pollControllers() {
         }
 
         if (
-            pressed(1) &&
+            bPressed &&
             videoOverlay.classList.contains(
                 "open"
             )
@@ -1271,14 +1553,29 @@ function pollControllers() {
             closeVideo();
         }
 
-        previousGamepadButtons[
-            gamepad.index
-        ] =
-            Array.from(
-                buttons,
-                button =>
-                    button.pressed
-            );
+        state.left =
+            direction.left;
+
+        state.right =
+            direction.right;
+
+        state.up =
+            direction.up;
+
+        state.down =
+            direction.down;
+
+        state.a =
+            a;
+
+        state.b =
+            b;
+
+        state.lb =
+            lb;
+
+        state.rb =
+            rb;
     }
 
     requestAnimationFrame(
@@ -1293,15 +1590,18 @@ window.addEventListener(
             "Controller connected:",
             event.gamepad.id
         );
+
+        controllerState.delete(
+            event.gamepad.index
+        );
     }
 );
 
 window.addEventListener(
     "gamepaddisconnected",
     event => {
-        console.log(
-            "Controller disconnected:",
-            event.gamepad.id
+        controllerState.delete(
+            event.gamepad.index
         );
     }
 );
