@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Daily iiSU News</title>
+<style>
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    min-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.08), transparent 35%),
+        radial-gradient(circle at 80% 80%, rgba(255,255,255,0.05), transparent 35%),
+        #080808;
+    color: white;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+button {
+    font: inherit;
+}
+
+.calendar-shell {
+    width: min(92vmin, 760px);
+    aspect-ratio: 1 / 1;
+    padding: clamp(14px, 2.5vmin, 24px);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: clamp(22px, 4vmin, 36px);
+    background: rgba(255,255,255,0.055);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    box-shadow:
+        0 25px 80px rgba(0,0,0,0.55),
+        inset 0 1px 0 rgba(255,255,255,0.08);
+    display: flex;
+    flex-direction: column;
+}
+
+.calendar-header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: clamp(12px, 2vmin, 20px);
+}
+
+.month-title {
+    margin: 0;
+    text-align: center;
+    font-size: clamp(18px, 3.4vmin, 30px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+}
+
+.nav-button {
+    width: clamp(34px, 6vmin, 48px);
+    height: clamp(34px, 6vmin, 48px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 50%;
+    background: rgba(255,255,255,0.07);
+    color: white;
+    cursor: pointer;
+    font-size: clamp(18px, 3vmin, 25px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+        background 0.18s ease,
+        transform 0.18s ease,
+        border-color 0.18s ease;
+}
+
+.nav-button:hover:not(:disabled) {
+    background: rgba(255,255,255,0.14);
+    border-color: rgba(255,255,255,0.22);
+    transform: scale(1.06);
+}
+
+.nav-button:disabled {
+    opacity: 0.2;
+    cursor: default;
+}
+
+.nav-button.prev {
+    justify-self: start;
+}
+
+.nav-button.next {
+    justify-self: end;
+}
+
+.weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: clamp(4px, 1vmin, 8px);
+    margin-bottom: clamp(5px, 1vmin, 9px);
+}
+
+.weekday {
+    text-align: center;
+    font-size: clamp(9px, 1.7vmin, 13px);
+    font-weight: 700;
+    color: rgba(255,255,255,0.42);
+    text-transform: uppercase;
+}
+
+.days {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    gap: clamp(4px, 1vmin, 9px);
+}
+
+.day {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    border: 1px solid rgba(255,255,255,0.055);
+    border-radius: clamp(10px, 2vmin, 17px);
+    background: rgba(255,255,255,0.025);
+    color: rgba(255,255,255,0.28);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(12px, 2.6vmin, 22px);
+    font-weight: 600;
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        transform 0.18s ease,
+        color 0.18s ease;
+}
+
+.day.empty {
+    border-color: transparent;
+    background: transparent;
+}
+
+.day.future {
+    color: rgba(255,255,255,0.16);
+}
+
+.day.episode {
+    cursor: pointer;
+    color: white;
+    background: rgba(255,255,255,0.075);
+    border-color: rgba(255,255,255,0.13);
+}
+
+.day.episode:hover {
+    transform: scale(1.045);
+    background: rgba(255,255,255,0.14);
+    border-color: rgba(255,255,255,0.25);
+    z-index: 2;
+}
+
+.day.selected {
+    background: rgba(255,255,255,0.18);
+    border-color: rgba(255,255,255,0.4);
+    box-shadow:
+        0 0 0 1px rgba(255,255,255,0.08),
+        0 8px 25px rgba(0,0,0,0.25);
+}
+
+.day.today {
+    background: rgba(255,255,255,0.24);
+    border-color: rgba(255,255,255,0.75);
+    box-shadow:
+        0 0 0 2px rgba(255,255,255,0.12),
+        0 0 30px rgba(255,255,255,0.12);
+    color: white;
+}
+
+.day.today .episode-dot {
+    opacity: 1;
+    box-shadow: 0 0 8px rgba(255,255,255,0.8);
+}
+
+.day-number {
+    position: relative;
+    z-index: 1;
+}
+
+.episode-dot {
+    position: absolute;
+    width: clamp(4px, 0.8vmin, 7px);
+    height: clamp(4px, 0.8vmin, 7px);
+    border-radius: 50%;
+    bottom: clamp(5px, 1vmin, 9px);
+    background: white;
+    opacity: 0.8;
+}
+
+.video-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5vmin;
+    background: rgba(0,0,0,0.72);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.video-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.video-modal {
+    position: relative;
+    width: min(90vw, 900px);
+    aspect-ratio: 16 / 9;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: clamp(14px, 2.5vmin, 24px);
+    overflow: hidden;
+    background: #000;
+    box-shadow:
+        0 30px 100px rgba(0,0,0,0.75),
+        0 0 0 1px rgba(255,255,255,0.04);
+    transform: scale(0.94);
+    transition: transform 0.22s ease;
+}
+
+.video-overlay.open .video-modal {
+    transform: scale(1);
+}
+
+.video-container,
+.video-container iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+}
+
+.close-button {
+    position: absolute;
+    top: clamp(8px, 1.5vmin, 14px);
+    right: clamp(8px, 1.5vmin, 14px);
+    z-index: 2;
+    width: clamp(32px, 5vmin, 44px);
+    height: clamp(32px, 5vmin, 44px);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 50%;
+    background: rgba(0,0,0,0.55);
+    color: white;
+    cursor: pointer;
+    font-size: clamp(20px, 3.5vmin, 29px);
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+        background 0.18s ease,
+        transform 0.18s ease;
+}
+
+.close-button:hover {
+    background: rgba(255,255,255,0.18);
+    transform: scale(1.08);
+}
+
+.loading {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.5);
+    font-size: clamp(13px, 2vmin, 17px);
+}
+</style>
+</head>
+<body>
+
+<div class="calendar-shell">
+    <div class="calendar-header">
+        <button class="nav-button prev" id="prevButton" aria-label="Previous month">‹</button>
+        <h1 class="month-title" id="monthTitle"></h1>
+        <button class="nav-button next" id="nextButton" aria-label="Next month">›</button>
+    </div>
+
+    <div class="weekdays">
+        <div class="weekday">Sun</div>
+        <div class="weekday">Mon</div>
+        <div class="weekday">Tue</div>
+        <div class="weekday">Wed</div>
+        <div class="weekday">Thu</div>
+        <div class="weekday">Fri</div>
+        <div class="weekday">Sat</div>
+    </div>
+
+    <div class="days" id="calendarDays">
+        <div class="loading">Loading...</div>
+    </div>
+</div>
+
+<div class="video-overlay" id="videoOverlay">
+    <div class="video-modal" id="videoModal">
+        <button class="close-button" id="closeButton" aria-label="Close video">×</button>
+        <div class="video-container" id="videoContainer"></div>
+    </div>
+</div>
+
+<audio id="moveSound" preload="auto">
+    <source src="Move.wav" type="audio/wav">
+</audio>
+
+<audio id="scrollSound" preload="auto">
+    <source src="Scroll.wav" type="audio/wav">
+</audio>
+
+<audio id="linkSound" preload="auto">
+    <source src="Link.wav" type="audio/wav">
+</audio>
+
+<script>
+const EPISODES_URL = "https://raw.githubusercontent.com/realjohniisu/daily-iisu-news/main/episodes.json";
+const START_DATE = new Date(2026, 8, 7);
+const FIRST_ALLOWED_MONTH = new Date(2026, 8, 1);
+
+const monthTitle = document.getElementById("monthTitle");
+const calendarDays = document.getElementById("calendarDays");
+const prevButton = document.getElementById("prevButton");
+const nextButton = document.getElementById("nextButton");
+
+const videoOverlay = document.getElementById("videoOverlay");
+const videoModal = document.getElementById("videoModal");
+const videoContainer = document.getElementById("videoContainer");
+const closeButton = document.getElementById("closeButton");
+
+const moveSound = document.getElementById("moveSound");
+const scrollSound = document.getElementById("scrollSound");
+const linkSound = document.getElementById("linkSound");
+
+let episodes = [];
+let episodeByDate = new Map();
+let currentMonth;
+let selectedEpisode = null;
+let todayDate = "";
+let hasPlayedHoverSound = false;
+
+function getTodayDate() {
+    const now = new Date();
+
+    return [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, "0"),
+        String(now.getDate()).padStart(2, "0")
+    ].join("-");
+}
+
+function calculateEpisodeDate(number) {
+    const date = new Date(START_DATE);
+    date.setDate(date.getDate() + number - 1);
+    return formatDate(date);
+}
+
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+function extractVideoId(url) {
+    if (!url) return null;
+
+    try {
+        const parsed = new URL(url);
+
+        if (parsed.hostname === "youtu.be") {
+            return parsed.pathname.slice(1).split("/")[0] || null;
+        }
+
+        if (
+            parsed.hostname.includes("youtube.com") ||
+            parsed.hostname.includes("youtube-nocookie.com")
+        ) {
+            if (parsed.searchParams.get("v")) {
+                return parsed.searchParams.get("v");
+            }
+
+            const parts = parsed.pathname.split("/").filter(Boolean);
+
+            if (parts[0] === "embed" || parts[0] === "shorts") {
+                return parts[1] || null;
+            }
+        }
+    } catch {
+        return null;
+    }
+
+    return null;
+}
+
+async function loadEpisodes() {
+    todayDate = getTodayDate();
+
+    try {
+        const response = await fetch(
+            `${EPISODES_URL}?cache=${Date.now()}`,
+            {
+                cache: "no-store"
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data)) {
+            throw new Error("Invalid episode data");
+        }
+
+        episodes = data
+            .map((episode) => {
+                const number = Number(episode.number);
+
+                if (!Number.isFinite(number)) {
+                    return null;
+                }
+
+                const videoId =
+                    episode.videoId ||
+                    extractVideoId(episode.url);
+
+                if (!videoId) {
+                    return null;
+                }
+
+                return {
+                    number,
+                    title:
+                        episode.title ||
+                        `Daily iiSU News: Day ${number}`,
+                    date:
+                        episode.date ||
+                        calculateEpisodeDate(number),
+                    videoId
+                };
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.number - b.number);
+
+        episodeByDate.clear();
+
+        for (const episode of episodes) {
+            episodeByDate.set(episode.date, episode);
+        }
+
+        const todayEpisode = episodeByDate.get(todayDate);
+
+        if (todayEpisode) {
+            selectedEpisode = todayEpisode;
+        }
+
+        const today = new Date();
+        currentMonth = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            1
+        );
+
+        if (currentMonth < FIRST_ALLOWED_MONTH) {
+            currentMonth = new Date(
+                FIRST_ALLOWED_MONTH.getFullYear(),
+                FIRST_ALLOWED_MONTH.getMonth(),
+                1
+            );
+        }
+
+        renderCalendar();
+    } catch (error) {
+        console.error(error);
+        calendarDays.innerHTML = "";
+        monthTitle.textContent = "";
+    }
+}
+
+function renderCalendar() {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+
+    monthTitle.textContent = currentMonth.toLocaleDateString(
+        "en-US",
+        {
+            month: "long",
+            year: "numeric"
+        }
+    );
+
+    prevButton.disabled =
+        year === FIRST_ALLOWED_MONTH.getFullYear() &&
+        month === FIRST_ALLOWED_MONTH.getMonth();
+
+    calendarDays.innerHTML = "";
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement("div");
+        empty.className = "day empty";
+        calendarDays.appendChild(empty);
+    }
+
+    for (let dayNumber = 1; dayNumber <= daysInMonth; dayNumber++) {
+        const date = new Date(year, month, dayNumber);
+        const dateString = formatDate(date);
+        const episode = episodeByDate.get(dateString);
+
+        const day = document.createElement("div");
+        day.className = "day";
+
+        if (dateString === todayDate) {
+            day.classList.add("today");
+        }
+
+        if (episode) {
+            day.classList.add("episode");
+
+            if (
+                selectedEpisode &&
+                selectedEpisode.number === episode.number
+            ) {
+                day.classList.add("selected");
+            }
+
+            day.innerHTML = `
+                <span class="day-number">${dayNumber}</span>
+                <span class="episode-dot"></span>
+            `;
+
+            day.addEventListener("mouseenter", () => {
+                if (!hasPlayedHoverSound) {
+                    hasPlayedHoverSound = true;
+                    scrollSound.currentTime = 0;
+                    scrollSound.play().catch(() => {});
+                }
+            });
+
+            day.addEventListener("click", () => {
+                selectEpisode(episode);
+            });
+        } else {
+            day.innerHTML = `
+                <span class="day-number">${dayNumber}</span>
+            `;
+
+            if (date > new Date()) {
+                day.classList.add("future");
+            }
+        }
+
+        calendarDays.appendChild(day);
+    }
+
+    const totalCells = firstDay + daysInMonth;
+
+    for (let i = totalCells; i < 42; i++) {
+        const empty = document.createElement("div");
+        empty.className = "day empty";
+        calendarDays.appendChild(empty);
+    }
+}
+
+function selectEpisode(episode) {
+    selectedEpisode = episode;
+    renderCalendar();
+
+    linkSound.currentTime = 0;
+    linkSound.play().catch(() => {});
+
+    videoContainer.innerHTML = `
+        <iframe
+            src="https://www.youtube.com/embed/${encodeURIComponent(episode.videoId)}?rel=0&origin=https%3A%2F%2Frealjohniisu.github.io"
+            title="${escapeHtml(episode.title)}"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen>
+        </iframe>
+    `;
+
+    videoOverlay.classList.add("open");
+    document.body.style.overflow = "hidden";
+}
+
+function closeVideo() {
+    videoOverlay.classList.remove("open");
+    videoContainer.innerHTML = "";
+    document.body.style.overflow = "";
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+prevButton.addEventListener("click", () => {
+    if (prevButton.disabled) return;
+
+    currentMonth = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth() - 1,
+        1
+    );
+
+    moveSound.currentTime = 0;
+    moveSound.play().catch(() => {});
+
+    renderCalendar();
+});
+
+nextButton.addEventListener("click", () => {
+    currentMonth = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth() + 1,
+        1
+    );
+
+    moveSound.currentTime = 0;
+    moveSound.play().catch(() => {});
+
+    renderCalendar();
+});
+
+closeButton.addEventListener("click", closeVideo);
+
+videoOverlay.addEventListener("click", (event) => {
+    if (event.target === videoOverlay) {
+        closeVideo();
+    }
+});
+
+videoModal.addEventListener("click", (event) => {
+    event.stopPropagation();
+});
+
+document.addEventListener("keydown", (event) => {
+    if (
+        event.key === "Escape" &&
+        videoOverlay.classList.contains("open")
+    ) {
+        closeVideo();
+    }
+});
+
+loadEpisodes();
+</script>
+
+</body>
+</html>
