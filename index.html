@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Daily iiSU News</title>
+
 <style>
 * {
     box-sizing: border-box;
@@ -18,8 +19,6 @@ body {
 }
 
 body {
-    width: 100%;
-    height: 100%;
     min-width: 0;
     min-height: 0;
     overflow: hidden;
@@ -32,10 +31,6 @@ body {
         #080808;
     color: white;
     font-family: Arial, Helvetica, sans-serif;
-}
-
-button {
-    font: inherit;
 }
 
 .calendar-shell {
@@ -90,16 +85,6 @@ button {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition:
-        background 0.18s ease,
-        transform 0.18s ease,
-        border-color 0.18s ease;
-}
-
-.nav-button:hover:not(:disabled) {
-    background: rgba(255,255,255,0.14);
-    border-color: rgba(255,255,255,0.22);
-    transform: scale(1.06);
 }
 
 .nav-button:disabled {
@@ -159,8 +144,7 @@ button {
     transition:
         background 0.18s ease,
         border-color 0.18s ease,
-        transform 0.18s ease,
-        color 0.18s ease;
+        transform 0.18s ease;
 }
 
 .day.empty {
@@ -189,9 +173,16 @@ button {
 .day.selected {
     background: rgba(255,255,255,0.18);
     border-color: rgba(255,255,255,0.4);
+}
+
+.day.controller-selected {
+    background: rgba(255,255,255,0.25);
+    border-color: rgba(255,255,255,0.8);
     box-shadow:
-        0 0 0 1px rgba(255,255,255,0.08),
-        0 8px 25px rgba(0,0,0,0.25);
+        0 0 0 2px rgba(255,255,255,0.15),
+        0 0 25px rgba(255,255,255,0.16);
+    transform: scale(1.045);
+    z-index: 3;
 }
 
 .day.today {
@@ -201,11 +192,6 @@ button {
         0 0 0 2px rgba(255,255,255,0.12),
         0 0 30px rgba(255,255,255,0.12);
     color: white;
-}
-
-.day.today .episode-dot {
-    opacity: 1;
-    box-shadow: 0 0 8px rgba(255,255,255,0.8);
 }
 
 .day-number {
@@ -221,6 +207,11 @@ button {
     bottom: clamp(4px, 1.5%, 9px);
     background: white;
     opacity: 0.8;
+}
+
+.day.today .episode-dot {
+    opacity: 1;
+    box-shadow: 0 0 8px rgba(255,255,255,0.8);
 }
 
 .video-overlay {
@@ -252,15 +243,7 @@ button {
     border-radius: clamp(12px, 2.5%, 24px);
     overflow: hidden;
     background: #000;
-    box-shadow:
-        0 30px 100px rgba(0,0,0,0.75),
-        0 0 0 1px rgba(255,255,255,0.04);
-    transform: scale(0.94);
-    transition: transform 0.22s ease;
-}
-
-.video-overlay.open .video-modal {
-    transform: scale(1);
+    box-shadow: 0 30px 100px rgba(0,0,0,0.75);
 }
 
 .video-container,
@@ -273,29 +256,18 @@ button {
 
 .close-button {
     position: absolute;
-    top: clamp(7px, 1.5%, 14px);
-    right: clamp(7px, 1.5%, 14px);
+    top: 12px;
+    right: 12px;
     z-index: 2;
-    width: clamp(30px, 5%, 44px);
-    height: clamp(30px, 5%, 44px);
+    width: 42px;
+    height: 42px;
     border: 1px solid rgba(255,255,255,0.2);
     border-radius: 50%;
     background: rgba(0,0,0,0.55);
     color: white;
     cursor: pointer;
-    font-size: clamp(19px, 3.5%, 29px);
+    font-size: 28px;
     line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition:
-        background 0.18s ease,
-        transform 0.18s ease;
-}
-
-.close-button:hover {
-    background: rgba(255,255,255,0.18);
-    transform: scale(1.08);
 }
 
 .loading {
@@ -309,13 +281,15 @@ button {
 }
 </style>
 </head>
+
 <body>
 
 <div class="calendar-shell">
+
     <div class="calendar-header">
-        <button class="nav-button prev" id="prevButton" aria-label="Previous month">‹</button>
+        <button class="nav-button prev" id="prevButton">‹</button>
         <h1 class="month-title" id="monthTitle"></h1>
-        <button class="nav-button next" id="nextButton" aria-label="Next month">›</button>
+        <button class="nav-button next" id="nextButton">›</button>
     </div>
 
     <div class="weekdays">
@@ -331,12 +305,16 @@ button {
     <div class="days" id="calendarDays">
         <div class="loading">Loading...</div>
     </div>
+
 </div>
 
 <div class="video-overlay" id="videoOverlay">
     <div class="video-modal" id="videoModal">
-        <button class="close-button" id="closeButton" aria-label="Close video">×</button>
+
+        <button class="close-button" id="closeButton">×</button>
+
         <div class="video-container" id="videoContainer"></div>
+
     </div>
 </div>
 
@@ -353,29 +331,57 @@ button {
 </audio>
 
 <script>
-const EPISODES_URL = "https://raw.githubusercontent.com/realjohniisu/daily-iisu-news/main/episodes.json";
-const START_DATE = new Date(2026, 8, 7);
-const FIRST_ALLOWED_MONTH = new Date(2026, 8, 1);
+const EPISODES_URL =
+    "https://raw.githubusercontent.com/realjohniisu/daily-iisu-news/main/episodes.json";
 
-const monthTitle = document.getElementById("monthTitle");
-const calendarDays = document.getElementById("calendarDays");
-const prevButton = document.getElementById("prevButton");
-const nextButton = document.getElementById("nextButton");
+const FIRST_ALLOWED_MONTH =
+    new Date(2026, 8, 1);
 
-const videoOverlay = document.getElementById("videoOverlay");
-const videoModal = document.getElementById("videoModal");
-const videoContainer = document.getElementById("videoContainer");
-const closeButton = document.getElementById("closeButton");
+const monthTitle =
+    document.getElementById("monthTitle");
 
-const moveSound = document.getElementById("moveSound");
-const scrollSound = document.getElementById("scrollSound");
-const linkSound = document.getElementById("linkSound");
+const calendarDays =
+    document.getElementById("calendarDays");
+
+const prevButton =
+    document.getElementById("prevButton");
+
+const nextButton =
+    document.getElementById("nextButton");
+
+const videoOverlay =
+    document.getElementById("videoOverlay");
+
+const videoModal =
+    document.getElementById("videoModal");
+
+const videoContainer =
+    document.getElementById("videoContainer");
+
+const closeButton =
+    document.getElementById("closeButton");
+
+const moveSound =
+    document.getElementById("moveSound");
+
+const scrollSound =
+    document.getElementById("scrollSound");
+
+const linkSound =
+    document.getElementById("linkSound");
 
 let episodes = [];
 let episodeByDate = new Map();
-let currentMonth;
+
+let currentMonth =
+    new Date(
+        FIRST_ALLOWED_MONTH.getFullYear(),
+        FIRST_ALLOWED_MONTH.getMonth(),
+        1
+    );
+
 let selectedEpisode = null;
-let todayDate = "";
+let controllerEpisodeIndex = 0;
 let hasPlayedHoverSound = false;
 
 function getTodayDate() {
@@ -388,41 +394,92 @@ function getTodayDate() {
     ].join("-");
 }
 
-function calculateEpisodeDate(number) {
-    const date = new Date(START_DATE);
-    date.setDate(date.getDate() + number - 1);
-    return formatDate(date);
+function parseEpisodeDate(dateString) {
+    if (
+        typeof dateString !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(dateString)
+    ) {
+        return null;
+    }
+
+    const parts =
+        dateString.split("-").map(Number);
+
+    const date =
+        new Date(
+            parts[0],
+            parts[1] - 1,
+            parts[2]
+        );
+
+    if (
+        date.getFullYear() !== parts[0] ||
+        date.getMonth() !== parts[1] - 1 ||
+        date.getDate() !== parts[2]
+    ) {
+        return null;
+    }
+
+    return date;
 }
 
 function formatDate(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
+    return [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, "0"),
+        String(date.getDate()).padStart(2, "0")
+    ].join("-");
 }
 
-function extractVideoId(url) {
-    if (!url) return null;
+function extractVideoId(value) {
+    if (!value) {
+        return null;
+    }
+
+    const text =
+        String(value).trim();
+
+    if (
+        /^[A-Za-z0-9_-]{11}$/.test(text)
+    ) {
+        return text;
+    }
 
     try {
-        const parsed = new URL(url);
+        const url =
+            new URL(text);
 
-        if (parsed.hostname === "youtu.be") {
-            return parsed.pathname.slice(1).split("/")[0] || null;
+        if (
+            url.hostname === "youtu.be"
+        ) {
+            return (
+                url.pathname
+                    .split("/")
+                    .filter(Boolean)[0]
+                || null
+            );
         }
 
         if (
-            parsed.hostname.includes("youtube.com") ||
-            parsed.hostname.includes("youtube-nocookie.com")
+            url.hostname.includes("youtube.com") ||
+            url.hostname.includes("youtube-nocookie.com")
         ) {
-            if (parsed.searchParams.get("v")) {
-                return parsed.searchParams.get("v");
+            const queryId =
+                url.searchParams.get("v");
+
+            if (queryId) {
+                return queryId;
             }
 
-            const parts = parsed.pathname.split("/").filter(Boolean);
+            const parts =
+                url.pathname
+                    .split("/")
+                    .filter(Boolean);
 
-            if (parts[0] === "embed" || parts[0] === "shorts") {
+            if (
+                parts[0] === "embed" ||
+                parts[0] === "shorts"
+            ) {
                 return parts[1] || null;
             }
         }
@@ -434,139 +491,278 @@ function extractVideoId(url) {
 }
 
 async function loadEpisodes() {
-    todayDate = getTodayDate();
+    calendarDays.innerHTML =
+        '<div class="loading">Loading...</div>';
 
     try {
-        const response = await fetch(
-            `${EPISODES_URL}?cache=${Date.now()}`,
-            {
-                cache: "no-store"
-            }
-        );
+        const response =
+            await fetch(
+                EPISODES_URL +
+                "?cache=" +
+                Date.now(),
+                {
+                    cache: "no-store"
+                }
+            );
 
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+            throw new Error(
+                "HTTP " + response.status
+            );
         }
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
         if (!Array.isArray(data)) {
-            throw new Error("Invalid episode data");
+            throw new Error(
+                "episodes.json is not an array"
+            );
         }
 
-        episodes = data
-            .map((episode) => {
-                const number = Number(episode.number);
+        episodes =
+            data
+                .map(raw => {
+                    if (!raw) {
+                        return null;
+                    }
 
-                if (!Number.isFinite(number)) {
-                    return null;
-                }
+                    const number =
+                        Number(raw.number);
 
-                const videoId =
-                    episode.videoId ||
-                    extractVideoId(episode.url);
+                    const date =
+                        parseEpisodeDate(
+                            raw.date
+                        );
 
-                if (!videoId) {
-                    return null;
-                }
+                    const videoId =
+                        extractVideoId(
+                            raw.videoId
+                        ) ||
+                        extractVideoId(
+                            raw.url
+                        );
 
-                return {
-                    number,
-                    title:
-                        episode.title ||
-                        `Daily iiSU News: Day ${number}`,
-                    date:
-                        episode.date ||
-                        calculateEpisodeDate(number),
-                    videoId
-                };
-            })
-            .filter(Boolean)
-            .sort((a, b) => a.number - b.number);
+                    if (
+                        !Number.isInteger(number) ||
+                        number < 1 ||
+                        !date ||
+                        !videoId
+                    ) {
+                        return null;
+                    }
 
-        episodeByDate.clear();
+                    return {
+                        number,
+                        title:
+                            raw.title ||
+                            `Daily iiSU News: Day ${number}`,
+                        date:
+                            formatDate(date),
+                        videoId
+                    };
+                })
+                .filter(Boolean)
+                .sort(
+                    (a, b) =>
+                        a.number - b.number
+                );
 
-        for (const episode of episodes) {
-            episodeByDate.set(episode.date, episode);
-        }
+        episodeByDate =
+            new Map(
+                episodes.map(
+                    episode => [
+                        episode.date,
+                        episode
+                    ]
+                )
+            );
 
-        const todayEpisode = episodeByDate.get(todayDate);
+        const today =
+            getTodayDate();
+
+        const todayEpisode =
+            episodeByDate.get(today);
 
         if (todayEpisode) {
-            selectedEpisode = todayEpisode;
+            selectedEpisode =
+                todayEpisode;
+
+            controllerEpisodeIndex =
+                episodes.findIndex(
+                    episode =>
+                        episode.number ===
+                        todayEpisode.number
+                );
         }
 
-        const today = new Date();
+        const now =
+            new Date();
 
-        currentMonth = new Date(
-            today.getFullYear(),
-            today.getMonth(),
-            1
+        const detectedMonth =
+            new Date(
+                now.getFullYear(),
+                now.getMonth(),
+                1
+            );
+
+        currentMonth =
+            detectedMonth <
+            FIRST_ALLOWED_MONTH
+                ? new Date(
+                    FIRST_ALLOWED_MONTH.getFullYear(),
+                    FIRST_ALLOWED_MONTH.getMonth(),
+                    1
+                )
+                : detectedMonth;
+
+        renderCalendar();
+
+    } catch (error) {
+        console.error(
+            "Episode scan failed:",
+            error
         );
 
-        if (currentMonth < FIRST_ALLOWED_MONTH) {
-            currentMonth = new Date(
+        calendarDays.innerHTML =
+            '<div class="loading">Unable to load episodes.</div>';
+    }
+}
+
+function isBeforeAllowedMonth(date) {
+    return (
+        date.getFullYear() <
+            FIRST_ALLOWED_MONTH.getFullYear() ||
+        (
+            date.getFullYear() ===
+                FIRST_ALLOWED_MONTH.getFullYear() &&
+            date.getMonth() <
+                FIRST_ALLOWED_MONTH.getMonth()
+        )
+    );
+}
+
+function isFirstAllowedMonth() {
+    return (
+        currentMonth.getFullYear() ===
+            FIRST_ALLOWED_MONTH.getFullYear() &&
+        currentMonth.getMonth() ===
+            FIRST_ALLOWED_MONTH.getMonth()
+    );
+}
+
+function renderCalendar() {
+    if (
+        isBeforeAllowedMonth(
+            currentMonth
+        )
+    ) {
+        currentMonth =
+            new Date(
                 FIRST_ALLOWED_MONTH.getFullYear(),
                 FIRST_ALLOWED_MONTH.getMonth(),
                 1
             );
-        }
-
-        renderCalendar();
-    } catch (error) {
-        console.error(error);
-        calendarDays.innerHTML = "";
-        monthTitle.textContent = "";
     }
-}
 
-function renderCalendar() {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
+    const year =
+        currentMonth.getFullYear();
 
-    monthTitle.textContent = currentMonth.toLocaleDateString(
-        "en-US",
-        {
-            month: "long",
-            year: "numeric"
-        }
-    );
+    const month =
+        currentMonth.getMonth();
+
+    monthTitle.textContent =
+        currentMonth.toLocaleDateString(
+            "en-US",
+            {
+                month: "long",
+                year: "numeric"
+            }
+        );
 
     prevButton.disabled =
-        year === FIRST_ALLOWED_MONTH.getFullYear() &&
-        month === FIRST_ALLOWED_MONTH_MONTH;
+        isFirstAllowedMonth();
 
     calendarDays.innerHTML = "";
 
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDay =
+        new Date(
+            year,
+            month,
+            1
+        ).getDay();
 
-    for (let i = 0; i < firstDay; i++) {
-        const empty = document.createElement("div");
-        empty.className = "day empty";
-        calendarDays.appendChild(empty);
+    const daysInMonth =
+        new Date(
+            year,
+            month + 1,
+            0
+        ).getDate();
+
+    for (
+        let i = 0;
+        i < firstDay;
+        i++
+    ) {
+        const empty =
+            document.createElement("div");
+
+        empty.className =
+            "day empty";
+
+        calendarDays.appendChild(
+            empty
+        );
     }
 
-    for (let dayNumber = 1; dayNumber <= daysInMonth; dayNumber++) {
-        const date = new Date(year, month, dayNumber);
-        const dateString = formatDate(date);
-        const episode = episodeByDate.get(dateString);
+    for (
+        let dayNumber = 1;
+        dayNumber <= daysInMonth;
+        dayNumber++
+    ) {
+        const date =
+            new Date(
+                year,
+                month,
+                dayNumber
+            );
 
-        const day = document.createElement("div");
-        day.className = "day";
+        const dateString =
+            formatDate(date);
 
-        if (dateString === todayDate) {
-            day.classList.add("today");
+        const episode =
+            episodeByDate.get(
+                dateString
+            );
+
+        const day =
+            document.createElement("div");
+
+        day.className =
+            "day";
+
+        if (
+            dateString ===
+            getTodayDate()
+        ) {
+            day.classList.add(
+                "today"
+            );
         }
 
         if (episode) {
-            day.classList.add("episode");
+            day.classList.add(
+                "episode"
+            );
 
             if (
                 selectedEpisode &&
-                selectedEpisode.number === episode.number
+                selectedEpisode.number ===
+                    episode.number
             ) {
-                day.classList.add("selected");
+                day.classList.add(
+                    "selected"
+                );
             }
 
             day.innerHTML = `
@@ -574,123 +770,545 @@ function renderCalendar() {
                 <span class="episode-dot"></span>
             `;
 
-            day.addEventListener("mouseenter", () => {
-                if (!hasPlayedHoverSound) {
-                    hasPlayedHoverSound = true;
-                    scrollSound.currentTime = 0;
-                    scrollSound.play().catch(() => {});
-                }
-            });
+            day.addEventListener(
+                "mouseenter",
+                () => {
+                    if (
+                        !hasPlayedHoverSound
+                    ) {
+                        hasPlayedHoverSound =
+                            true;
 
-            day.addEventListener("click", () => {
-                selectEpisode(episode);
-            });
+                        playSound(
+                            scrollSound
+                        );
+                    }
+                }
+            );
+
+            day.addEventListener(
+                "click",
+                () => {
+                    selectEpisode(
+                        episode
+                    );
+                }
+            );
         } else {
             day.innerHTML = `
                 <span class="day-number">${dayNumber}</span>
             `;
 
-            if (date > new Date()) {
-                day.classList.add("future");
+            if (
+                date > new Date()
+            ) {
+                day.classList.add(
+                    "future"
+                );
             }
         }
 
-        calendarDays.appendChild(day);
+        calendarDays.appendChild(
+            day
+        );
     }
 
-    const totalCells = firstDay + daysInMonth;
+    const totalCells =
+        firstDay +
+        daysInMonth;
 
-    for (let i = totalCells; i < 42; i++) {
-        const empty = document.createElement("div");
-        empty.className = "day empty";
-        calendarDays.appendChild(empty);
+    for (
+        let i = totalCells;
+        i < 42;
+        i++
+    ) {
+        const empty =
+            document.createElement("div");
+
+        empty.className =
+            "day empty";
+
+        calendarDays.appendChild(
+            empty
+        );
     }
+
+    updateControllerHighlight();
+}
+
+function getVisibleEpisodes() {
+    return episodes.filter(
+        episode => {
+            const date =
+                parseEpisodeDate(
+                    episode.date
+                );
+
+            return (
+                date &&
+                date.getFullYear() ===
+                    currentMonth.getFullYear() &&
+                date.getMonth() ===
+                    currentMonth.getMonth()
+            );
+        }
+    );
+}
+
+function updateControllerHighlight() {
+    document
+        .querySelectorAll(
+            ".controller-selected"
+        )
+        .forEach(
+            element =>
+                element.classList.remove(
+                    "controller-selected"
+                )
+        );
+
+    if (!selectedEpisode) {
+        return;
+    }
+
+    const visible =
+        getVisibleEpisodes();
+
+    const index =
+        visible.findIndex(
+            episode =>
+                episode.number ===
+                selectedEpisode.number
+        );
+
+    if (index < 0) {
+        return;
+    }
+
+    const targetDate =
+        visible[index].date;
+
+    document
+        .querySelectorAll(
+            ".day.episode"
+        )
+        .forEach(day => {
+            const number =
+                Number(
+                    day
+                        .querySelector(
+                            ".day-number"
+                        )
+                        ?.textContent
+                );
+
+            const date =
+                new Date(
+                    currentMonth.getFullYear(),
+                    currentMonth.getMonth(),
+                    number
+                );
+
+            if (
+                formatDate(date) ===
+                targetDate
+            ) {
+                day.classList.add(
+                    "controller-selected"
+                );
+            }
+        });
+}
+
+function moveControllerSelection(direction) {
+    const visible =
+        getVisibleEpisodes();
+
+    if (!visible.length) {
+        return;
+    }
+
+    let index =
+        visible.findIndex(
+            episode =>
+                selectedEpisode &&
+                episode.number ===
+                    selectedEpisode.number
+        );
+
+    if (index < 0) {
+        index =
+            direction > 0
+                ? 0
+                : visible.length - 1;
+    } else {
+        index += direction;
+
+        if (index < 0) {
+            index =
+                visible.length - 1;
+        }
+
+        if (
+            index >=
+            visible.length
+        ) {
+            index = 0;
+        }
+    }
+
+    selectedEpisode =
+        visible[index];
+
+    updateControllerHighlight();
+
+    playSound(
+        scrollSound
+    );
 }
 
 function selectEpisode(episode) {
-    selectedEpisode = episode;
-    renderCalendar();
+    selectedEpisode =
+        episode;
 
-    linkSound.currentTime = 0;
-    linkSound.play().catch(() => {});
+    playSound(
+        linkSound
+    );
 
     videoContainer.innerHTML = `
         <iframe
-            src="https://www.youtube.com/embed/${encodeURIComponent(episode.videoId)}?rel=0&origin=https%3A%2F%2Frealjohniisu.github.io"
-            title="${escapeHtml(episode.title)}"
+            src="https://www.youtube.com/embed/${encodeURIComponent(
+                episode.videoId
+            )}?rel=0&origin=https%3A%2F%2Frealjohniisu.github.io"
+            title="${escapeHtml(
+                episode.title
+            )}"
             referrerpolicy="strict-origin-when-cross-origin"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowfullscreen>
         </iframe>
     `;
 
-    videoOverlay.classList.add("open");
-    document.body.style.overflow = "hidden";
+    videoOverlay.classList.add(
+        "open"
+    );
+
+    document.body.style.overflow =
+        "hidden";
+
+    renderCalendar();
 }
 
 function closeVideo() {
-    videoOverlay.classList.remove("open");
-    videoContainer.innerHTML = "";
-    document.body.style.overflow = "";
+    videoOverlay.classList.remove(
+        "open"
+    );
+
+    videoContainer.innerHTML =
+        "";
+
+    document.body.style.overflow =
+        "";
+}
+
+function changeMonth(amount) {
+    const nextMonth =
+        new Date(
+            currentMonth.getFullYear(),
+            currentMonth.getMonth() +
+                amount,
+            1
+        );
+
+    if (
+        isBeforeAllowedMonth(
+            nextMonth
+        )
+    ) {
+        currentMonth =
+            new Date(
+                FIRST_ALLOWED_MONTH.getFullYear(),
+                FIRST_ALLOWED_MONTH.getMonth(),
+                1
+            );
+
+        return;
+    }
+
+    currentMonth =
+        nextMonth;
+
+    playSound(
+        moveSound
+    );
+
+    renderCalendar();
 }
 
 function escapeHtml(value) {
     return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
 }
 
-prevButton.addEventListener("click", () => {
-    if (prevButton.disabled) return;
+function playSound(audio) {
+    audio.currentTime = 0;
 
-    currentMonth = new Date(
-        currentMonth.getFullYear(),
-        currentMonth.getMonth() - 1,
-        1
+    audio.play().catch(
+        () => {}
     );
+}
 
-    moveSound.currentTime = 0;
-    moveSound.play().catch(() => {});
-
-    renderCalendar();
-});
-
-nextButton.addEventListener("click", () => {
-    currentMonth = new Date(
-        currentMonth.getFullYear(),
-        currentMonth.getMonth() + 1,
-        1
-    );
-
-    moveSound.currentTime = 0;
-    moveSound.play().catch(() => {});
-
-    renderCalendar();
-});
-
-closeButton.addEventListener("click", closeVideo);
-
-videoOverlay.addEventListener("click", (event) => {
-    if (event.target === videoOverlay) {
-        closeVideo();
+prevButton.addEventListener(
+    "click",
+    () => {
+        if (
+            !prevButton.disabled
+        ) {
+            changeMonth(-1);
+        }
     }
-});
+);
 
-videoModal.addEventListener("click", (event) => {
-    event.stopPropagation();
-});
+nextButton.addEventListener(
+    "click",
+    () => {
+        changeMonth(1);
+    }
+);
 
-document.addEventListener("keydown", (event) => {
-    if (
-        event.key === "Escape" &&
-        videoOverlay.classList.contains("open")
+closeButton.addEventListener(
+    "click",
+    closeVideo
+);
+
+videoOverlay.addEventListener(
+    "click",
+    event => {
+        if (
+            event.target ===
+            videoOverlay
+        ) {
+            closeVideo();
+        }
+    }
+);
+
+videoModal.addEventListener(
+    "click",
+    event => {
+        event.stopPropagation();
+    }
+);
+
+document.addEventListener(
+    "keydown",
+    event => {
+        if (
+            event.key ===
+            "Escape"
+        ) {
+            closeVideo();
+            return;
+        }
+
+        if (
+            event.key ===
+            "ArrowLeft"
+        ) {
+            changeMonth(-1);
+        }
+
+        if (
+            event.key ===
+            "ArrowRight"
+        ) {
+            changeMonth(1);
+        }
+
+        if (
+            event.key ===
+            "ArrowUp"
+        ) {
+            moveControllerSelection(-1);
+        }
+
+        if (
+            event.key ===
+            "ArrowDown"
+        ) {
+            moveControllerSelection(1);
+        }
+
+        if (
+            event.key === "Enter" ||
+            event.key === " "
+        ) {
+            if (
+                selectedEpisode &&
+                !videoOverlay.classList.contains(
+                    "open"
+                )
+            ) {
+                selectEpisode(
+                    selectedEpisode
+                );
+            }
+        }
+    }
+);
+
+let previousGamepadButtons = [];
+
+function pollControllers() {
+    if (!navigator.getGamepads) {
+        requestAnimationFrame(
+            pollControllers
+        );
+        return;
+    }
+
+    const gamepads =
+        navigator.getGamepads();
+
+    for (
+        const gamepad of gamepads
     ) {
-        closeVideo();
+        if (!gamepad) {
+            continue;
+        }
+
+        if (
+            !previousGamepadButtons[
+                gamepad.index
+            ]
+        ) {
+            previousGamepadButtons[
+                gamepad.index
+            ] = [];
+        }
+
+        const previous =
+            previousGamepadButtons[
+                gamepad.index
+            ];
+
+        const buttons =
+            gamepad.buttons;
+
+        const pressed =
+            index =>
+                buttons[index] &&
+                buttons[index].pressed &&
+                !previous[index];
+
+        if (
+            pressed(14) ||
+            pressed(4)
+        ) {
+            changeMonth(-1);
+        }
+
+        if (
+            pressed(15) ||
+            pressed(5)
+        ) {
+            changeMonth(1);
+        }
+
+        if (
+            pressed(12)
+        ) {
+            moveControllerSelection(
+                -1
+            );
+        }
+
+        if (
+            pressed(13)
+        ) {
+            moveControllerSelection(
+                1
+            );
+        }
+
+        if (
+            pressed(0) &&
+            selectedEpisode &&
+            !videoOverlay.classList.contains(
+                "open"
+            )
+        ) {
+            selectEpisode(
+                selectedEpisode
+            );
+        }
+
+        if (
+            pressed(1) &&
+            videoOverlay.classList.contains(
+                "open"
+            )
+        ) {
+            closeVideo();
+        }
+
+        previousGamepadButtons[
+            gamepad.index
+        ] =
+            Array.from(
+                buttons,
+                button =>
+                    button.pressed
+            );
     }
-});
+
+    requestAnimationFrame(
+        pollControllers
+    );
+}
+
+window.addEventListener(
+    "gamepadconnected",
+    event => {
+        console.log(
+            "Controller connected:",
+            event.gamepad.id
+        );
+    }
+);
+
+window.addEventListener(
+    "gamepaddisconnected",
+    event => {
+        console.log(
+            "Controller disconnected:",
+            event.gamepad.id
+        );
+    }
+);
+
+requestAnimationFrame(
+    pollControllers
+);
 
 loadEpisodes();
 </script>
